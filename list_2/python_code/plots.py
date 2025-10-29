@@ -419,22 +419,41 @@ def _plot_roc_f1_cm_logistic_regression(
 
 if __name__ == "__main__":
 
-    pca_postprocessing()
+    # Configure what algorithms results should be processed
+    actions = {
+        "postprocessing": [
+            # "pca",
+            # "kmeans",
+            # "logistic_regression",
+        ],
+        "preprocessing": [
+            # "logistic_regression",
+        ],
+    }
 
-    args = [  # uncomment study cases to process
-        ("cat-10", ".jpg"),
-        ("cat-101", ".jpg"),
-        ("cat-110", ".jpg"),
-        ("flower-6", ".jpg"),
-        ("flower-14", ".jpg"),
-        ("flower-23", ".jpg"),
-        ("horse-137", ".jpg"),
-        ("horse-139", ".jpg"),
-        ("horse-170", ".jpg"),
-    ]
-    for arg in args:
-        case_study, fmt = arg
-        kmeans_postprocessing(case_study=case_study, fmt=fmt)
+    # Preprocessing
+    if "logistic_regression" in actions["preprocessing"]:
+        logistic_regression_preprocessing()
 
-    logistic_regression_preprocessing()
-    logistic_regression_postprocessing()
+    # Postprocessing
+    if "pca" in actions["postprocessing"]:
+        pca_postprocessing()
+
+    if "kmeans" in actions["postprocessing"]:
+        args = [  # uncomment study cases to process
+            ("cat-10", ".jpg"),
+            ("cat-101", ".jpg"),
+            ("cat-110", ".jpg"),
+            ("flower-6", ".jpg"),
+            ("flower-14", ".jpg"),
+            ("flower-23", ".jpg"),
+            ("horse-137", ".jpg"),
+            ("horse-139", ".jpg"),
+            ("horse-170", ".jpg"),
+        ]
+        for arg in args:
+            case_study, fmt = arg
+            kmeans_postprocessing(case_study=case_study, fmt=fmt)
+
+    if "logistic_regression" in actions["postprocessing"]:
+        logistic_regression_postprocessing()
