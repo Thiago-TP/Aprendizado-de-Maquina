@@ -6,6 +6,16 @@ use std::path::Path;
 // Data structures
 use nalgebra::{DMatrix, Dim, Matrix, Storage};
 
+/// Loads a CSV as a matrix of floats.
+///
+/// Parameters
+/// ---
+/// - `path` (`impl AsRef<Path>`): Path to the CSV.
+/// - `has_headers` (`bool`): Whether the CSV file has headers.
+///
+/// Returns
+/// ---
+/// - `data` (`DMatrix<f64>`): Matrix object of data.
 pub fn load_csv(path: impl AsRef<Path>, has_headers: bool) -> DMatrix<f64> {
     // Reads (serializes) the CSV
     let mut records = match csv::ReaderBuilder::new()
@@ -33,6 +43,17 @@ pub fn load_csv(path: impl AsRef<Path>, has_headers: bool) -> DMatrix<f64> {
     DMatrix::from_row_slice(rows, cols, &stream)
 }
 
+/// Dumps a matrix of floats into a CSV.
+///
+/// Parameters
+/// ---
+/// - `path` (`&str`): Path to the CSV.
+/// - `data` (`&DMatrix<f64>`): Matrix object of data.
+///
+/// Returns
+/// ---
+/// - `Result<(), Box<dyn Error>>`:
+///     `Ok(())` if dump was succesful, else `Box<dyn Error>`.
 pub fn to_csv<R, C, S>(path: &str, data: &Matrix<f64, R, C, S>) -> Result<(), Box<dyn Error>>
 where
     R: Dim,

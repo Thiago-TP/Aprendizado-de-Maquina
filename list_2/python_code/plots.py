@@ -46,6 +46,7 @@ def pca_postprocessing(output_folder: str = "./plots/pca/") -> None:
                 bbox_inches="tight",
                 pad_inches=0,
             )
+            plt.close()
 
 
 def kmeans_postprocessing(
@@ -128,6 +129,7 @@ def _plot_elbow_kmeans(
         bbox_inches="tight",
         pad_inches=0,
     )
+    plt.close()
 
 
 def _plot_clusters_in_sample_space(
@@ -164,6 +166,7 @@ def _plot_clusters_in_sample_space(
                 bbox_inches="tight",
                 pad_inches=0,
             )
+            plt.close()
 
 
 def logistic_regression_preprocessing(
@@ -375,7 +378,7 @@ def _plot_roc_f1_cm_logistic_regression(
             "marker": "o",
             "linestyle": "-",
             "color": color,
-            # "fontsize": 18,
+            "fontsize": 18,
         }
 
         f1_df = pd.DataFrame(f1)
@@ -398,6 +401,7 @@ def _plot_roc_f1_cm_logistic_regression(
             bbox_inches="tight",
             pad_inches=0,
         )
+        plt.close()
 
     # Confusion Matrix
     plt.figure(figsize=(5, 4))
@@ -414,7 +418,7 @@ def _plot_roc_f1_cm_logistic_regression(
     accuracy = (confusion_matrix[0, 0] + confusion_matrix[1, 1]) / np.sum(
         confusion_matrix
     )
-    print(f"Overall accuracy for threshold {th_optimal}: {accuracy*100:.2f} %")
+    print(f"\tOverall accuracy for threshold {th_optimal}: {accuracy*100:.2f} %")
 
 
 if __name__ == "__main__":
@@ -422,21 +426,25 @@ if __name__ == "__main__":
     # Configure what algorithms results should be processed
     actions = {
         "postprocessing": [
-            # "pca",
-            # "kmeans",
-            # "logistic_regression",
+            "pca",
+            "kmeans",
+            "logistic_regression",
         ],
         "preprocessing": [
-            # "logistic_regression",
+            "logistic_regression",
         ],
     }
 
     # Preprocessing
     if "logistic_regression" in actions["preprocessing"]:
+        print(
+            "Plotting logistic regression results (histograms, correlation matrix)..."
+        )
         logistic_regression_preprocessing()
 
     # Postprocessing
     if "pca" in actions["postprocessing"]:
+        print("Plotting PCA results (projections in sample space)...")
         pca_postprocessing()
 
     if "kmeans" in actions["postprocessing"]:
@@ -453,7 +461,13 @@ if __name__ == "__main__":
         ]
         for arg in args:
             case_study, fmt = arg
+            print(
+                f"Plotting k-means results (error, reconstructed image, clusters) for {case_study}..."
+            )
             kmeans_postprocessing(case_study=case_study, fmt=fmt)
 
     if "logistic_regression" in actions["postprocessing"]:
+        print(
+            "Plotting logistic regression results (F1-Score, ROC, Confusion Matrix)..."
+        )
         logistic_regression_postprocessing()

@@ -1,9 +1,27 @@
 use image;
 use nalgebra::DMatrix;
-use rand::{SeedableRng, rngs::StdRng, seq::index::sample};
+use rand::{rngs::StdRng, seq::index::sample, SeedableRng};
 
 use crate::handle_csv::to_csv;
 
+/// Fixed seed for randomization
+pub static SEED: u64 = 242104677;
+
+/// Preprocess a given sample matrix X, making its attributes zero-mean and normalized (between -1 and 1).
+/// Attributes are assumed to be columns of the matrix, and its rows the samples.
+/// What is done are two pointwise operations: Z = (X-M)./Amax,
+/// where M is the matrix of attributes averages and Amax the matrix of attributes maxima, in absolute value.
+///
+/// Parameters
+/// ---
+/// - `sample_matrix` (`&DMatrix<f64>`):
+///     Sample matrix.
+///
+/// Returns
+/// ---
+/// - `preprocessed_data` (`DMatrix<f64>`): Zero-mean, normalized attributes data matrix derived from original sample matrix.
+/// - `mean_matrix` (`DMatrix<f64>`): Matrix of attributes averages used to remove the mean.
+/// - `max_matrix` (`DMatrix<f64>`): Matrix of attributes maximum (in absolute value) used to normalize the data.
 pub fn preprocess_data(sample_matrix: &DMatrix<f64>) -> (DMatrix<f64>, DMatrix<f64>, DMatrix<f64>) {
     let broadcaster = DMatrix::from_fn(sample_matrix.nrows(), 1, |_, _| 1f64);
     let mean_matrix = &broadcaster * sample_matrix.row_mean();
@@ -17,6 +35,17 @@ pub fn preprocess_data(sample_matrix: &DMatrix<f64>) -> (DMatrix<f64>, DMatrix<f
     return (preprocessed_data, mean_matrix, max_matrix);
 }
 
+/// Given an iteration's centroids, finds the label of each sample.
+///
+/// Parameters
+/// ---
+/// - `x`: (`&DMatrix<f64>`): Data matrix which rows are samples and columns are attributes.
+/// - `c`: (`&DMatrix<f64>`): Centroid matrix which rows are centroids and columns are attributes.
+///
+/// Returns
+/// ---
+/// - `labels` (`Vec<f64>`): Label of each sample.
+/// - `error` (`f64`): Total error in using the assigned labels to reconstuct data.
 fn reconstruction_labels(x: &DMatrix<f64>, c: &DMatrix<f64>) -> (Vec<f64>, f64) {
     let reconstruction = DMatrix::from_row_slice(
         x.nrows(),
@@ -36,22 +65,59 @@ fn reconstruction_labels(x: &DMatrix<f64>, c: &DMatrix<f64>) -> (Vec<f64>, f64) 
         min_errors.push(error);
     }
 
-    return (labels, min_errors.iter().sum());
+    let error = min_errors.iter().sum();
+
+    return (labels, error);
 }
 
+/// Returns the indices of all samples labeled with a given value.
+///
+/// Parameters
+/// ---
+/// - `label` (`f64`): Target label value
+/// - `labels` (`Vec<f64>`): Samples labels, given sample by sample
+///
+/// Returns
+/// ---
+/// - `indices` (`Vec<usize>`): Indices in `labels` that had value `label`.
 fn samples_labeled(label: f64, labels: &Vec<f64>) -> Vec<usize> {
     let indices: Vec<usize> = labels
         .iter()
         .enumerate()
         .filter_map(
             |(index, &value)| {
-                if value == label { Some(index) } else { None }
+                if value == label {
+                    Some(index)
+                } else {
+                    None
+                }
             },
         )
         .collect();
     return indices;
 }
 
+/// Implements the k-means algorithm.
+/// Centroids are randomly initialized with seed `SEED`.
+///
+/// Parameters
+/// ---
+/// - `sample_matrix` (`&DMatrix<f64>`):
+///     Matrix which rows are samples and columns are attributes.
+///     Attributes are assumed to be zero-mean and unit standard deviation.
+/// - `k` (`usize`):
+///     Number of clusters.
+/// - `max_iter` (`usize`):
+///     Maximum number of iterations if convergence of centroids is not achieved.
+/// - `tol` (`f64`):
+///     Tolerance on the change of centroids after maximization step.
+///     If the change is falls below `tol`, kmeans stops.
+///
+/// Returns
+/// ---
+/// - `centroids` (`Vec<DMatrix<f64>>`): The sets of centroids observed at each iteration's expectation step.
+/// - `labels` (`Vec<Vec<f64>>`): The sets of labels observed at each iteration's expectation step.
+/// - `errors` (`Vec<f64>`): The reconstruction errors associated with the labels history.
 fn k_means(
     sample_matrix: &DMatrix<f64>,
     k: usize,
@@ -62,7 +128,7 @@ fn k_means(
     let n = sample_matrix.nrows();
 
     // Centroid initialization from fixed seed
-    let mut rng = StdRng::seed_from_u64(242104677);
+    let mut rng = StdRng::seed_from_u64(SEED);
     let k_random_indeces = sample(&mut rng, n, k).into_vec();
     let mut new_centroids = sample_matrix.select_rows(k_random_indeces.iter());
 
@@ -97,86 +163,78 @@ fn k_means(
         // Stop conditions: number of iterations maxed out and/or centroids positions update is negligible.
         let delta = &new_centroids - &centroids[iteration];
         let max_change = delta.component_mul(&delta).max().sqrt();
-
-        if max_change < tol {
-            converged = true; // new centroids after convergence are not included
-            println!("Centroids converged after {:?} iterations!", iteration);
-        }
-
+        converged = max_change < tol;
         iteration += 1;
-
-        if iteration == max_iter && !converged {
-            println!(
-                "Centroids did not converge even after {:?} iterations!",
-                iteration
-            );
-        }
     }
 
     return (centroids, labels, errors);
 }
 
-pub fn run() {
-    let save_results = false;
+/// Runs kmeans on the given image, assumed to be of format JPG.
+/// Code may not execute properly if image is not JPG.
+/// Original dataset's attributes are normalized between -1 and 1 before running the algorithm.
+/// Kmeans parameters of stoppage are hard-coded:
+/// 50 as a maximum number of iterations,
+/// 0.001 as a minimum of centroids change to run another iteration.
+///
+/// Parameters
+/// ---
+/// - `case_study` (`&str`): Name to the JPG, minus the extension. Expected to be in folder "`./data/kmeans/".
+/// - number_of_clusters (`int`): Number of clusters kmeans will use.
+/// - `save_results` (`bool`):
+///     Whether to save results, overwriting previous results if existing. All results are CSV files.
+///     If folder "`kmeans/{case_study}`" does not exist inside "`results/`", saving will fail.
+///
+/// Returns
+/// ---
+/// None, but the following files may be saved/overwritten in path `resuls/pca/`:
+/// - `centroids.csv`: centroids of the last expectation step, given row by row.
+/// - `labels.csv`: labels of each pixel, given in order as a column.
+/// - `errors.csv`: reconstruction error (in normalized, zero mean sample space) of each iteration's expectation step, given as a column.
+pub fn run(case_study: &str, number_of_clusters: usize, save_results: bool) {
+    println!("K-means case study: {}\n---\n", case_study);
 
-    let args = vec![
-        // ("cat-10", 15),
-        // ("cat-101", 15),
-        // ("cat-110", 15),
-        ("flower-6", 10),
-        // ("flower-14", 10),
-        // ("flower-23", 10),
-        // ("horse-137", 10),
-        // ("horse-139", 15),
-        // ("horse-170", 15),
-    ];
+    // Data loading: 3D dataset (i.e., three features per sample)
+    let img = image::open(format!("./data/kmeans/{}.jpg", case_study))
+        .expect("Image could not be loaded!");
+    let bytes = img.into_bytes();
+    let img_matrix = DMatrix::from_row_slice(bytes.len() / 3, 3, &bytes);
+    let sample_matrix_3d = img_matrix.cast::<f64>();
+    let (zero_mean_normalized_samples, means, maxs) = preprocess_data(&sample_matrix_3d);
 
-    for (case_study, number_of_clusters) in args {
-        println!("K-means case study: {}\n---\n", case_study);
+    // Results of the k-means algorithm
+    let (centroid_history, label_history, errors) = k_means(
+        &zero_mean_normalized_samples,
+        number_of_clusters,
+        50,      // default maximum number of iterations
+        1e-3f64, // default tolerance on centroids change
+    );
 
-        // Data loading: 3D dataset (i.e., three features per sample)
-        let img = image::open(format!("./data/kmeans/{}.jpg", case_study))
-            .expect("Image could not be loaded!");
-        let bytes = img.into_bytes();
-        let img_matrix = DMatrix::from_row_slice(bytes.len() / 3, 3, &bytes);
-        let sample_matrix_3d = img_matrix.cast::<f64>();
-        let (zero_mean_normalized_samples, means, maxs) = preprocess_data(&sample_matrix_3d);
-
-        // Results of the k-means algorithm
-        let (centroid_history, label_history, errors) = k_means(
-            &zero_mean_normalized_samples,
-            number_of_clusters,
-            50,
-            1e-3f64,
+    // Saving error results (centroids and labels are saved across iterations of kmeans loop)
+    if save_results {
+        let (last_centroids, last_labels) = (
+            &centroid_history[centroid_history.len() - 1],
+            &label_history[label_history.len() - 1],
         );
+        // Bring centroids back to original scale and average
+        let irows: Vec<usize> = (0..number_of_clusters).collect();
+        let rescaled_centroids = &(last_centroids.component_mul(&maxs.select_rows(irows.iter()))
+            + &means.select_rows(irows.iter()));
 
-        // Saving error results (centroids and labels are saved across iterations of kmeans loop)
+        let r = "./results/kmeans/".to_owned() + case_study;
         if save_results {
-            let (last_centroids, last_labels) = (
-                &centroid_history[centroid_history.len() - 1],
-                &label_history[label_history.len() - 1],
-            );
-            // Bring centroids back to original scale and average
-            let irows: Vec<usize> = (0..number_of_clusters).collect();
-            let rescaled_centroids = &(last_centroids
-                .component_mul(&maxs.select_rows(irows.iter()))
-                + &means.select_rows(irows.iter()));
+            to_csv(&(r.clone() + "/centroids.csv"), &rescaled_centroids).unwrap();
             to_csv(
-                &format!("./results/kmeans/{}/centroids.csv", case_study),
-                &rescaled_centroids,
-            )
-            .unwrap();
-            to_csv(
-                &format!("./results/kmeans/{}/labels.csv", case_study),
+                &(r.clone() + "/labels.csv"),
                 &DMatrix::from_column_slice(last_labels.len(), 1, &last_labels),
             )
             .unwrap();
             to_csv(
-                &format!("./results/kmeans/{}/errors.csv", case_study),
+                &(r.clone() + "/errors.csv"),
                 &DMatrix::from_iterator(errors.len(), 1, errors),
             )
             .unwrap();
         }
-        println!("\nkmeans algorithm done.\n---\n");
     }
+    println!("\nkmeans algorithm done.\n---\n");
 }
