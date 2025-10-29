@@ -1,10 +1,27 @@
-\section*{
-    \includegraphics[width=1cm]{rustacean-flat-happy.png}
-    Note on code
+    \section*{
+    \includegraphics[width=1.2cm]{rustacean-flat-happy.png}
+    \hfill
+    Quick note on code
+    \hfill
+    \includegraphics[width=0.8cm]{python-logo.png}
 }
+\vspace{-.25cm}
+\noindent\rule{\textwidth}{.5pt}
 
-\blindtext
-% Documentação do código
-% Revisão do código (python e rust) e texto 
-% README com instalação e execução (obs.: dar pipdetree)
-% Criar projeto no github e colocar link aqui
+% Revisão do texto 
+% README com instalação e execução
+This report is the textual part of a greater bundle that also encompasses code.
+The algorithms discussed in this report (PCA, k-means, logistic regression)
+were implemented by the author in the Rust programming language, 
+and stores the relevant data for later analysis as CSV files. 
+%
+Rust is known for its memmory safety and fast performance, even among compiled languages.
+However, given its focus on systems applications, there is a lack of robust, mature plotting libraries.
+%
+Therefore, a Python script (\texttt{plots.py}) was written to process and extract from Rust's results 
+any graph, plot or image that was deemed necessary to include in this report.
+
+Both the Rust source code and well as the Python script were included in the bundle, 
+and are available together with this report in an open Github repository made by the author:
+
+\noindent\centering\url{https://github.com/Thiago-TP/Aprendizado-de-Maquina/tree/main/list_2}.
