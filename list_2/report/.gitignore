@@ -1,0 +1,6 @@
+*.aux
+*.fdb_latexmk
+*.fis
+*.log
+*.out
+*.syctec.gz
