@@ -1,0 +1,48 @@
+\begin{tikzpicture}[> = latex]
+
+    \def\r{.08}
+
+    % Part 1: initialization
+    \draw (1, 4) circle (.3) node {1};
+    \drawDataset{black!10}{black!10}
+    % Ceentroids
+    \fill [red] (0.5, 1.2) circle (\r);
+    \fill [blue] (1.6, 1.0) circle (\r);
+
+    % Part 2: assigning samples according to distance
+    \begin{scope}[shift={(4, 0)}]
+        \draw (1, 4) circle (.3) node {2};
+        \drawDataset{red!40}{blue!40}
+        \draw [fill=red!40] (0.8, 0.6) circle (\r);
+        % Old centroids
+        \fill [red] (0.5, 1.2) circle (\r);
+        \fill [blue] (1.6, 1.0) circle (\r);
+        % New centroids
+    \end{scope}
+
+    % Part 3: calculate clusters' centroids 
+    \begin{scope}[shift={(8, 0)}]
+        \draw (1, 4) circle (.3) node {3};
+        \drawDataset{red!40}{blue!40}
+        \draw [fill=red!40] (0.8, 0.6) circle (\r);
+        % Old centroids
+        \fill [red] (0.5, 1.2) circle (\r) node (c1) {};
+        \fill [blue] (1.6, 1.0) circle (\r) node (c2) {};
+
+        % Centroids to be
+        \draw (0.05, 1.625) circle (\r) node (c1-new) {};
+        \draw (1.55, 0.583) circle (\r) node (c2-new) {};
+
+        \draw [->] (c1.center) -- (c1-new.center);
+        \draw [->] (c2.center) -- (c2-new.center);
+    \end{scope}
+
+    % Part 4: update centroids and clusters
+    \begin{scope}[shift={(12, 0)}]
+        \draw (1, 4) circle (.3) node {5};        
+        \drawDataset{red!40}{blue!40}
+        % Centroids
+        \fill [red] (0.05, 1.625) circle (\r);
+        \fill [blue] (1.55, 0.583) circle (\r);
+    \end{scope}
+\end{tikzpicture}

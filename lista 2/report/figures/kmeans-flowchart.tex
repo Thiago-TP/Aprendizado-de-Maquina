@@ -1,0 +1,65 @@
+\begin{tikzpicture}[> = latex]
+    \node [io] (0) at (0, 0) {
+        $\mathbf{X}^*_{N\times d}$, 
+        $k$, 
+        $\delta_{\max}$, 
+        $i_{\max}$
+    };
+    \node [startstop, above=1.35 of 0] (start) {Start};
+    \node [process, below=1 of 0] (1) {
+        $i=0$
+    };
+    \node [process, below=1 of 1] (2) {
+        $\mathcal{R} = \{1\leq r_j\leq N\}_{1\leq j\leq k}$
+    };
+    \node [process, below=1 of 2] (3) {
+        $\mathbf{l}_j = \mathbf{x}^*_{r_j}$, 
+        $1\leq j\leq k$
+    };
+    \node [process, right=1 of 3] (4) {
+        \begin{minipage}{5.25cm}
+        \centering
+            For $\mathbf{x}^*$ in $\mathbf{X}^*$:\\
+            $\mathcal{C}_j \leftarrow \mathbf{x}^*,\ $
+            $j = \argmin_m \lVert \mathbf{x}^* - \mathbf{l}_m\rVert_2$
+        \end{minipage}
+    };
+    \node [process, above=1 of 4] (5) {
+        $\mathbf{c}_j \leftarrow \text{Avg. of }\mathcal{C}_j$,
+        $1\leq j\leq k$
+    };
+    \node [process, above=1 of 5] (6) {
+        $\delta = \max\lVert \mathbf{l}_j-\mathbf{c}_j\rVert_2$,
+        $1\leq j\leq k$
+    };
+    \node [decision, above=1 of 6, yshift=-.5cm] (7) {
+        $\delta < \delta_{\max}$?
+    };
+    \node [decision, right=1 of 7, xshift=1cm] (8) {
+        $i \geq i_{\max}$?
+    };
+    \node [process, below=0.5 of 8] (9) {
+        $i \leftarrow i + 1$
+    };
+    \node [process, below=1 of 9] (10) {
+        $\mathbf{l}_j \leftarrow \mathbf{c}_j$,
+        $1\leq j\leq k$
+    };
+    \node [startstop, above=0.5 of 7] (stop) {Stop};
+
+    \draw [->] (start) -- (0);
+    \draw [->] (0) -- (1);
+    \draw [->] (1) -- (2);
+    \draw [->] (2) -- (3);
+    \draw [->] (3) -- (4);
+    \draw [->] (4) -- (5);
+    \draw [->] (5) -- (6);
+    \draw [->] (6) -- (7);
+    \draw [->] (7) -- (8) node [midway, above] {no};
+    \draw [->] (8) -- (9) node [midway, above right] {no};
+    \draw [->] (9) -- (10);
+
+    \draw [->] (7) -- (stop) node [midway, left] {yes};
+    \draw [->] (8) |- (stop) node [midway, above] {yes};
+    \draw [->] (10) |- (4);
+\end{tikzpicture}
