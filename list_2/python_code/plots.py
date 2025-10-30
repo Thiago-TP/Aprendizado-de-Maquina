@@ -120,7 +120,7 @@ def _plot_elbow_kmeans(
     )
     plt.title(f"Case Study: {case_study}", fontsize=24)
     plt.xlabel("Iteration", fontsize=24)
-    plt.ylabel("Error on $\\mathbf{X}^*$", fontsize=24)
+    plt.ylabel("Avg. error per $\\mathbf{x}^*$", fontsize=24)
     plt.grid()
     plt.xticks(fontsize=20)
     plt.yticks(rotation=45, ha="right", fontsize=20)
