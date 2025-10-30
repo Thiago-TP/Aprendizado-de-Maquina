@@ -231,7 +231,8 @@ pub fn run(case_study: &str, number_of_clusters: usize, save_results: bool) {
             .unwrap();
             to_csv(
                 &(r.clone() + "/errors.csv"),
-                &DMatrix::from_iterator(errors.len(), 1, errors),
+                &(DMatrix::from_iterator(errors.len(), 1, errors)
+                    / (sample_matrix_3d.nrows() as f64)),
             )
             .unwrap();
         }
